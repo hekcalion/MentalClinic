@@ -1,6 +1,9 @@
-﻿using MentalClinic.API.Repositories;
+﻿using MentalClinic.API.Helpers;
+using MentalClinic.API.Models.Domain;
+using MentalClinic.API.Models.Response;
+using MentalClinic.API.Repositories;
 using Microsoft.AspNetCore.Mvc;
-using EmployeeRequest = MentalClinic.API.Models.Request.Employee; 
+using EmployeeRequest = MentalClinic.API.Models.Request.Employee;
 
 namespace MentalClinic.API.Controllers;
 
@@ -10,10 +13,12 @@ public class EmployeeController : ControllerBase
 {
 
     private readonly EmployeeRepository _employeeRepository;
+    private readonly AppointmentRepository _appointmentRepository;
 
-    public EmployeeController(EmployeeRepository employeeRepository)
+    public EmployeeController(EmployeeRepository employeeRepository, AppointmentRepository appointmentRepository)
     {
         _employeeRepository = employeeRepository;
+        _appointmentRepository = appointmentRepository;
     }
 
     [HttpGet]
@@ -36,16 +41,61 @@ public class EmployeeController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("{id}/availability")]
+    public async Task<IActionResult> GetAvailability(string id)
+    {
+        var employee = await _employeeRepository.Get(id);
+
+        if (employee == null)
+        {
+            return BadRequest("Employee does not exist");
+        }
+
+        var specialistAppointments = await _appointmentRepository.GetBySpecialistId(id);
+        
+        DateTime currentDateTime = DateTime.Now;
+
+        List<TimeOnly> availableAppointmentHours = AppointmentHelper.GenerateHours();
+        List<DateOnly> fiveWorkDays = AppointmentHelper.GenerateWorkdays(currentDateTime, 5);
+        List<Availability> availability = new List<Availability>();
+
+        foreach(var day in fiveWorkDays)
+        {
+            if(day == DateOnly.FromDateTime(currentDateTime))
+            {
+                availability.Add(new Availability()
+                {
+                    Date = day,
+                    Timeslots = availableAppointmentHours.Except(specialistAppointments.Where(x => x.SelectedDate == day).Select(x => x.SelectedTimeSlot))
+                    .Where(x => x > TimeOnly.FromDateTime(currentDateTime))
+                    .ToList()
+                });
+            }
+
+            availability.Add(new Availability()
+            {
+                Date = day,
+                Timeslots = availableAppointmentHours.Except(specialistAppointments.Where(x => x.SelectedDate == day).Select(x => x.SelectedTimeSlot)).ToList()
+            });
+        }
+
+        return Ok(new EmployeeAvailability()
+        {
+            Id = id,
+            Availability = availability
+        });
+    }
+
     [HttpPost]
     public async Task<IActionResult> Post([FromBody] EmployeeRequest request)
     {
         string id = Guid.NewGuid().ToString();
-        var statusCode = await _employeeRepository.Create(new Models.Domain.Employee
+        await _employeeRepository.Create(new Employee
         {
             id = id,
             FirstName = request.FirstName,
             LastName = request.LastName,
-            Specialty = request.Specialty,
+            Specialty = request.Specialty
         });
 
         return Ok();
@@ -61,7 +111,7 @@ public class EmployeeController : ControllerBase
             return BadRequest("Employee does not exist");
         }
 
-        await _employeeRepository.Update(new Models.Domain.Employee()
+        await _employeeRepository.Update(new Employee()
         {
             id = id,
             FirstName = request.FirstName,
@@ -84,6 +134,7 @@ public class EmployeeController : ControllerBase
         }
 
         await _employeeRepository.Delete(id);
+
         return Ok();
     }
 }

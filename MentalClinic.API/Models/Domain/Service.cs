@@ -12,7 +12,7 @@ public class Service
 
     public List<MainIllnessInformation> MainIllnessInformation { get; set; }
 
-    public List<string> Testing { get; set; }
+    public List<string> TestIds { get; set; }
 
     public string TreatmentDuration { get; set; }
 }

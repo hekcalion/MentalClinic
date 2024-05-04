@@ -1,4 +1,6 @@
-﻿namespace MentalClinic.API.Models.Request;
+﻿using MentalClinic.API.Models.Domain;
+
+namespace MentalClinic.API.Models.Request;
 
 public class Test
 {
@@ -15,32 +17,4 @@ public class Test
     public List<Question> Questions { get; set; }
 
     public List<Result> Result { get; set; }
-}
-
-
-public class Question
-{
-    public string question_id { get; set; }
-
-    public string question_text { get; set; }
-
-    public List<AnswerOptions> answer_options { get; set; }
-}
-
-
-public class AnswerOptions
-{
-    public string Text { get; set; }
-
-    public int Value { get; set; }
-}
-
-
-public class Result
-{
-    public int MinTotalValue { get; set; }
-
-    public int MaxTotalValue { get; set; }
-
-    public string ResultText { get; set; }
 }

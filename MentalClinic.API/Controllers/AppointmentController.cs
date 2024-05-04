@@ -1,4 +1,5 @@
-﻿using MentalClinic.API.Repositories;
+﻿using MentalClinic.API.Models.Domain;
+using MentalClinic.API.Repositories;
 using Microsoft.AspNetCore.Mvc;
 using AppointmentRequest = MentalClinic.API.Models.Request.Appointment;
 
@@ -9,10 +10,12 @@ namespace MentalClinic.API.Controllers;
 public class AppointmentController : ControllerBase
 {
     private readonly AppointmentRepository _appointmentRepository;
+    private readonly EmployeeRepository _employeeRepository;
 
-    public AppointmentController(AppointmentRepository appointmentRepository)
+    public AppointmentController(AppointmentRepository appointmentRepository, EmployeeRepository employeeRepository)
     {
         _appointmentRepository = appointmentRepository;
+        _employeeRepository = employeeRepository;
     }
 
     [HttpGet]
@@ -39,7 +42,14 @@ public class AppointmentController : ControllerBase
     public async Task<IActionResult> Post([FromBody] AppointmentRequest request)
     {
         string id = Guid.NewGuid().ToString();
-        var statusCode = await _appointmentRepository.Create(new Models.Domain.Appointment
+
+        var employee = await _employeeRepository.Get(request.SpecialistSelect);
+        if (employee == null)
+        {
+            return BadRequest("Specialist does not exist");
+        }
+
+        await _appointmentRepository.Create(new Appointment
         {
             id = id,
             SpecialistSelect = request.SpecialistSelect,
@@ -66,13 +76,18 @@ public class AppointmentController : ControllerBase
     public async Task<IActionResult> Put([FromQuery] string id, [FromBody] AppointmentRequest request)
     {
         var appointment = await _appointmentRepository.Get(id);
-
         if (appointment == null)
         {
             return BadRequest("Appointment does not exist");
         }
 
-        await _appointmentRepository.Update(new Models.Domain.Appointment()
+        var employee = await _employeeRepository.Get(request.SpecialistSelect);
+        if (employee == null)
+        {
+            return BadRequest("Specialist does not exist");
+        }
+
+        await _appointmentRepository.Update(new Appointment()
         {
             id = id,
             SpecialistSelect = request.SpecialistSelect,

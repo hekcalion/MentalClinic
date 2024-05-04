@@ -1,4 +1,5 @@
-﻿using MentalClinic.API.Repositories;
+﻿using MentalClinic.API.Models.Domain;
+using MentalClinic.API.Repositories;
 using Microsoft.AspNetCore.Mvc;
 using TestRequest = MentalClinic.API.Models.Request.Test;
 
@@ -47,5 +48,65 @@ public class TestController : ControllerBase
             Questions = test.Questions,
             Result = test.Result
         });
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> Post([FromBody] TestRequest request)
+    {
+        string id = Guid.NewGuid().ToString();
+        await _testRepository.Create(new Test()
+        {
+            id = id,
+            BlockHeader = request.BlockHeader,
+            BlockSubHeader = request.BlockSubHeader,
+            Name = request.Name,
+            ShortDescription = request.ShortDescription,
+            long_test_description = request.long_test_description,
+            Questions = request.Questions,
+            Result = request.Result
+        });
+
+        return Ok();
+    }
+
+    [HttpPut]
+    public async Task<IActionResult> Put([FromQuery] string id, [FromBody] TestRequest request)
+    {
+        var test = await _testRepository.Get(id);
+
+        if (test == null)
+        {
+            return BadRequest("Test does not exist");
+        }
+
+        await _testRepository.Update(new Test()
+        {
+            id = id,
+            BlockHeader = request.BlockHeader,
+            BlockSubHeader = request.BlockSubHeader,
+            Name = request.Name,
+            ShortDescription = request.ShortDescription,
+            long_test_description = request.long_test_description,
+            Questions = request.Questions,
+            Result = request.Result
+        });
+
+        return Ok();
+    }
+
+
+    [HttpDelete]
+    public async Task<IActionResult> Delete([FromQuery] string id)
+    {
+        var test = await _testRepository.Get(id);
+
+        if (test == null)
+        {
+            return NotFound();
+        }
+
+        await _testRepository.Delete(id);
+
+        return Ok();
     }
 }

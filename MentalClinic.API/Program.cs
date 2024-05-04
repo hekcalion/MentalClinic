@@ -8,7 +8,6 @@ public class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
-        // Add services to the container.
         builder.Services.AddSingleton<CosmosClient>(new CosmosClient(builder.Configuration.GetValue<string>("CosmosDataBase:ConnectionString")));
         builder.Services.AddSingleton<Database>(sp =>
         {
@@ -37,14 +36,26 @@ public class Program
             return new TestRepository(database.GetContainer("Test"));
         });
 
+        builder.Services.AddScoped<ServiceRepository>(sp =>
+        {
+            var database = sp.GetRequiredService<Database>();
+            database.CreateContainerIfNotExistsAsync("Service", "/id").GetAwaiter().GetResult();
+            return new ServiceRepository(database.GetContainer("Service"));
+        });
+
+        builder.Services.AddScoped<ContentRepository>(sp =>
+        {
+            var database = sp.GetRequiredService<Database>();
+            database.CreateContainerIfNotExistsAsync("Content", "/id").GetAwaiter().GetResult();
+            return new ContentRepository(database.GetContainer("Content"));
+        });
+
         builder.Services.AddControllers();
-        // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
 
         var app = builder.Build();
 
-        // Configure the HTTP request pipeline.
         if (app.Environment.IsDevelopment())
         {
             app.UseSwagger();
